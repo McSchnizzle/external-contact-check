@@ -1,0 +1,26 @@
+{
+  "name": "external-contact-check",
+  "version": "1.0.0",
+  "description": "Playwright tests to validate contact forms across VE-family websites",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:team-cinder": "playwright test tests/team-cinder.spec.ts",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "show-report": "playwright show-report"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "contact-forms",
+    "e2e"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.0.0"
+  }
+}
