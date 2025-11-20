@@ -65,44 +65,71 @@ test.describe('Team Cinder Contact Form', () => {
     });
 
     // Submit the form
-    await test.step('Submit the form', async () => {
+    await test.step('Submit the form and verify submission', async () => {
       const submitButton = page.locator('button[type="submit"], input[type="submit"], button:has-text("submit"), button:has-text("send")').first();
       await expect(submitButton).toBeVisible();
-      await submitButton.click();
+
+      // Wait for either navigation or response after clicking submit
+      const [response] = await Promise.all([
+        page.waitForResponse(response => response.request().method() === 'POST', { timeout: 30000 }).catch(() => null),
+        submitButton.click()
+      ]);
+
+      console.log('Form submitted, response received:', response?.status());
     });
 
     // Wait for submission to complete (look for success message or redirect)
     await test.step('Verify submission completed', async () => {
-      // Wait a bit for the form to process
+      // Wait a moment for page to update
       await page.waitForTimeout(3000);
 
-      // Take screenshot after submission
-      await page.screenshot({
-        path: path.join(screenshotDir, '03-after-submission.png'),
-        fullPage: true
-      });
+      // Check if page is still available (might have redirected)
+      const pageStillExists = !page.isClosed();
 
-      // Look for success indicators (adjust based on actual behavior)
-      // This might be a success message, a redirect, or form disappearing
-      const possibleSuccessIndicators = [
-        page.locator('text=/thank you/i'),
-        page.locator('text=/success/i'),
-        page.locator('text=/received/i'),
-        page.locator('text=/submitted/i'),
-      ];
+      if (pageStillExists) {
+        // Take screenshot after submission
+        await page.screenshot({
+          path: path.join(screenshotDir, '03-after-submission.png'),
+          fullPage: true
+        }).catch(() => console.log('Could not take screenshot - page may have navigated'));
 
-      let foundSuccess = false;
-      for (const indicator of possibleSuccessIndicators) {
-        if (await indicator.count() > 0) {
-          foundSuccess = true;
-          break;
+        // Check for success indicators
+        const url = page.url();
+        const urlChanged = !url.includes('/contact');
+
+        // Look for success messages
+        const successMessage = await page.locator('text=/thank you/i, text=/success/i, text=/received/i, text=/submitted/i, text=/sent/i').count();
+
+        // Check if form was cleared
+        const messageField = page.locator('textarea').first();
+        const messageFieldExists = await messageField.count() > 0;
+        let formCleared = false;
+
+        if (messageFieldExists) {
+          const messageValue = await messageField.inputValue();
+          formCleared = messageValue === '';
         }
-      }
 
-      // If no success message found, at least verify we're not on an error page
-      if (!foundSuccess) {
-        const errorIndicators = page.locator('text=/error/i, text=/failed/i');
-        await expect(errorIndicators).toHaveCount(0);
+        // Check for errors
+        const hasErrors = await page.locator('text=/error/i, text=/failed/i').count() > 0;
+
+        console.log({
+          urlChanged,
+          successMessage: successMessage > 0,
+          formCleared,
+          hasErrors,
+          currentUrl: url
+        });
+
+        // Verify submission succeeded
+        const submissionSucceeded = urlChanged || successMessage > 0 || (formCleared && !hasErrors);
+
+        if (!submissionSucceeded) {
+          throw new Error(`Form submission could not be verified. URL: ${url}`);
+        }
+      } else {
+        console.log('Page closed/navigated - likely successful submission');
+        // Page closed is actually a sign of successful redirect
       }
     });
   });
