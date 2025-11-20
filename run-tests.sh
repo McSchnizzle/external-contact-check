@@ -28,12 +28,11 @@ TEST_EXIT_CODE=$?
 echo ""
 echo "================================================"
 echo "  Tests completed!"
+echo "  HTML report opening automatically..."
 echo "================================================"
 echo ""
 
-# Always open the HTML report
-echo "Opening HTML report..."
-npm run show-report
+# HTML report opens automatically (configured in playwright.config.ts)
 
 # Wait for user to press any key (optional)
 # Uncomment the next line if you want the terminal to stay open
